@@ -41,7 +41,10 @@ class User extends Authenticatable
     public function followers()
     {
         return $this->belongsToMany(User::class, 'user_follow', 'follow_id', 'user_id')->withTimestamps();
-}
+    }
+    
+   
+    
     
     public function follow($userId)
     {
@@ -77,16 +80,65 @@ class User extends Authenticatable
         return false;
         }
     }
-
-
-    public function is_following($userId) {
+    
+       public function is_following($userId) {
         return $this->followings()->where('follow_id', $userId)->exists();
     }
-
-  public function feed_microposts()
+    
+     public function feed_microposts()
     {
         $follow_user_ids = $this->followings()-> pluck('users.id')->toArray();
         $follow_user_ids[] = $this->id;
         return Micropost::whereIn('user_id', $follow_user_ids);
     }
+    
+    
+    
+    
+     public function favorites()
+    {
+        return $this->belongsToMany(Micropost::class, 'favorites', 'user_id', 'favorite_id')->withTimestamps();
+    }
+    
+    public function favorite($micropostId)
+{
+    // confirm if already favorite
+    $exist = $this->is_favorite($micropostId);
+    // confirming that it is not you
+    $its_me = $this->id == $micropostId;
+
+    if ($exist || $its_me) {
+        // do nothing if already favorite
+        return false;
+    } else {
+        // follow if not following
+        $this->favorites()->attach($micropostId);
+        return true;
+    }
+}
+
+public function unfavorite($micropostId)
+{
+    // confirming if already favorite
+    $exist = $this->is_favorite($micropostId);
+    // confirming that it is not you
+    $its_me = $this->id == $micropostId;
+
+
+    if ($exist && !$its_me) {
+        // stop favorite if favorite
+        $this->favorites()->detach($micropostId);
+        return true;
+    } else {
+        // do nothing if not favorite
+        return false;
+    }
+}
+    public function is_favorite($micropostId)
+    {
+        return $this->favorites()->where('favorite_id', $micropostId)->exists();
+    }
+ 
+
+ 
 }
